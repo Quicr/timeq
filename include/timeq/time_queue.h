@@ -74,25 +74,33 @@ namespace timeq {
         using queue_type = std::vector<queue_value_type>;
 
       public:
-        template<typename ElemType>
+        template<typename U>
         struct element
         {
             /// Value of front object
-            std::optional<ElemType> value;
+            std::optional<U> value;
 
             /// Number of items expired before on this front access
             std::uint32_t expired{ 0 };
         };
 
-        template<typename ElemType>
-        struct element<ElemType&>
+        template<typename U>
+        struct element<U&>
         {
             /// Value of front object
-            std::optional<std::reference_wrapper<ElemType>> value;
+            std::optional<std::reference_wrapper<U>> value;
 
             /// Number of items expired before on this front access
             std::uint32_t expired{ 0 };
         };
+
+#if defined(__clang__) || (defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12)
+        template<typename U>
+        element(U) -> element<U>;
+#endif
+
+        using value_type = element<T>;
+        using reference = element<T&>;
 
         /**
          * @brief Construct a time_queue with defaults or supplied parameters
@@ -197,7 +205,7 @@ namespace timeq {
          *
          * @returns Element of the front value
          */
-        FORCE_INLINE element<T&> front()
+        FORCE_INLINE reference front()
         {
             const tick_type ticks = advance();
 
@@ -233,10 +241,10 @@ namespace timeq {
          *
          * @returns element of the popped value
          */
-        [[nodiscard]] FORCE_INLINE element<T> pop_front()
+        [[nodiscard]] FORCE_INLINE value_type pop_front()
         {
             auto&& [value, expired] = front();
-            element<T> elem{ value.has_value() ? std::make_optional(std::move(value->get())) : std::nullopt, expired };
+            value_type elem{ value.has_value() ? std::make_optional(std::move(value->get())) : std::nullopt, expired };
 
             if (elem.value.has_value()) {
                 pop();
