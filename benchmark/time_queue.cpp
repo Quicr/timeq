@@ -127,15 +127,13 @@ BM_TimeQueue_PushAndPopLoaded(benchmark::State& state)
         ++items_count;
         tq.push(items_count, 1000);
 
-        // Simulate load by not poping all items
+        // Simulate load by not popping all items
         if (items_count % 100 == 0) {
             auto elem = tq.front();
             tq.pop();
             benchmark::DoNotOptimize(elem);
+            benchmark::ClobberMemory();
         }
-
-        benchmark::DoNotOptimize(items_count);
-        benchmark::ClobberMemory();
     }
 
     state.SetItemsProcessed(items_count);
@@ -154,8 +152,8 @@ BM_TimeQueue_PushAndPop_Interval_1ms(benchmark::State& state)
         auto elem = tq.front();
         tq.pop();
 
-        benchmark::DoNotOptimize(items_count);
         benchmark::DoNotOptimize(elem);
+        benchmark::ClobberMemory();
     }
 
     state.SetItemsProcessed(items_count);
@@ -174,8 +172,8 @@ BM_TimeQueue_PushAndPop_Interval_125ms(benchmark::State& state)
         auto elem = tq.front();
         tq.pop();
 
-        benchmark::DoNotOptimize(items_count);
         benchmark::DoNotOptimize(elem);
+        benchmark::ClobberMemory();
     }
 
     state.SetItemsProcessed(items_count);
