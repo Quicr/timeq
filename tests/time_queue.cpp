@@ -87,7 +87,7 @@ TEST(time_queue, PushAndPopSequentialButExpireSome)
     size_t expected_value = 0;
     size_t expected_expired = 0;
 
-    for (auto elem = tq.pop_front(); elem.value.has_value(); elem = tq.pop_front()) {
+    for (time_queue<int>::element elem = tq.pop_front(); elem.value.has_value(); elem = tq.pop_front()) {
         ++popped;
         EXPECT_EQ(elem.value.value(), expected_value);
         EXPECT_EQ(elem.expired, expected_expired);
@@ -116,7 +116,7 @@ TEST(time_queue, ExpireAllBeforePop)
     ASSERT_FALSE(tq.empty());
 
     // Try to pop an element, updating the queue.
-    for (auto elem = tq.pop_front(); elem.value.has_value();) {
+    for (time_queue<int>::element elem = tq.pop_front(); elem.value.has_value();) {
         // If we successfully popped an item, then we failed to expire the whole queue after the duration of the queue
         // has passed.
         FAIL();
