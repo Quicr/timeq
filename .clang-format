@@ -1,0 +1,10 @@
+---
+Language: Cpp
+BasedOnStyle: Microsoft
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: true
+AlwaysBreakTemplateDeclarations: Yes
+ColumnLimit: 120
+PointerAlignment: Left
+SpaceAfterTemplateKeyword: false

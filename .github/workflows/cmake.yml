@@ -1,0 +1,93 @@
+name: CMake
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jidicula/clang-format-action@v4.13.0
+        with:
+          clang-format-version: '18'
+
+  build:
+    strategy:
+      matrix:
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTING=ON
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: ${{matrix.os}}-build-output
+        path: ${{github.workspace}}/build
+        retention-days: 5
+
+  test:
+    needs: build
+    strategy:
+      matrix:
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{matrix.os}}-build-output
+          path: ${{github.workspace}}/build
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        run: |
+          chmod -R +rx ${{github.workspace}}/build
+          ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+
+  benchmark:
+    needs: build
+    strategy:
+      matrix:
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm ]
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{matrix.os}}-build-output
+          path: ${{github.workspace}}/build
+
+      - name: Benchmark
+        run: |
+          chmod +x ${{github.workspace}}/build/benchmark/timeq_benchmark
+          ${{github.workspace}}/build/benchmark/timeq_benchmark
