@@ -74,28 +74,30 @@ namespace timeq {
         using queue_type = std::vector<queue_value_type>;
 
       public:
-        template<typename ElemType>
+        template<typename U>
         struct element
         {
             /// Value of front object
-            std::optional<ElemType> value;
+            std::optional<U> value;
 
             /// Number of items expired before on this front access
             std::uint32_t expired{ 0 };
         };
 
-        template<typename ElemType>
-        struct element<ElemType&>
+        template<typename U>
+        struct element<U&>
         {
             /// Value of front object
-            std::optional<std::reference_wrapper<ElemType>> value;
+            std::optional<std::reference_wrapper<U>> value;
 
             /// Number of items expired before on this front access
             std::uint32_t expired{ 0 };
         };
 
-        template<typename ElemType>
-        element(ElemType) -> element<ElemType>;
+#ifdef __clang__
+        template<typename U>
+        element(U) -> element<U>;
+#endif
 
         using value_type = element<T>;
         using reference = element<T&>;
@@ -389,6 +391,11 @@ namespace timeq {
         /// Tick service for calculating new tick and jumps in time.
         std::shared_ptr<tick_service> _tick_service;
     };
+
+#ifndef __clang__
+    template<typename T, typename U>
+    time_queue<T>::element(U)->time_queue<T>::element<U>;
+#endif
 
 #undef FORCE_INLINE
 }; // namespace timeq
