@@ -23,23 +23,15 @@
 #include "tick_service.h"
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 namespace timeq {
 #define FORCE_INLINE __attribute__((always_inline))
-
-    template<typename T>
-    struct time_queue_element
-    {
-        /// Value of front object
-        std::optional<T> value;
-
-        /// Number of items expired before on this front access
-        std::uint32_t expired{ 0 };
-    };
 
     /**
      * @brief Aging element FIFO queue.
@@ -82,6 +74,26 @@ namespace timeq {
         using queue_type = std::vector<queue_value_type>;
 
       public:
+        template<typename ElemType>
+        struct element
+        {
+            /// Value of front object
+            std::optional<ElemType> value;
+
+            /// Number of items expired before on this front access
+            std::uint32_t expired{ 0 };
+        };
+
+        template<typename ElemType>
+        struct element<ElemType&>
+        {
+            /// Value of front object
+            std::optional<std::reference_wrapper<ElemType>> value;
+
+            /// Number of items expired before on this front access
+            std::uint32_t expired{ 0 };
+        };
+
         /**
          * @brief Construct a time_queue with defaults or supplied parameters
          *
@@ -181,26 +193,11 @@ namespace timeq {
         }
 
         /**
-         * @brief Pops (removes) the front of the queue.
-         *
-         * @returns time_queue_element of the popped value
-         */
-        [[nodiscard]] FORCE_INLINE time_queue_element<T> pop_front()
-        {
-            time_queue_element<T> elem = front();
-            if (elem.value.has_value()) {
-                pop();
-            }
-
-            return elem;
-        }
-
-        /**
          * @brief Returns the most valid front of the queue without popping.
          *
          * @returns Element of the front value
          */
-        FORCE_INLINE time_queue_element<T> front()
+        FORCE_INLINE element<T&> front()
         {
             const tick_type ticks = advance();
 
@@ -229,6 +226,23 @@ namespace timeq {
             clear();
 
             return { std::nullopt, expired };
+        }
+
+        /**
+         * @brief Pops (removes) the front of the queue.
+         *
+         * @returns element of the popped value
+         */
+        [[nodiscard]] FORCE_INLINE element<T> pop_front()
+        {
+            auto&& [value, expired] = front();
+            element<T> elem{ value.has_value() ? std::make_optional(std::move(value->get())) : std::nullopt, expired };
+
+            if (elem.value.has_value()) {
+                pop();
+            }
+
+            return elem;
         }
 
         FORCE_INLINE constexpr std::size_t size() const noexcept { return _queue.size() - _queue_index; }

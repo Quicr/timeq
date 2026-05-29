@@ -50,6 +50,25 @@ BM_TimeQueue_Pop(benchmark::State& state)
 }
 
 static void
+BM_TimeQueue_Front(benchmark::State& state)
+{
+    timeq::time_queue<int> tq(state.range(0), 1, service, kIterations);
+    for (size_t i = 0; i < kIterations; ++i) {
+        tq.push(i, 15);
+    }
+
+    int64_t items_count = 0;
+    for (auto _ : state) {
+        ++items_count;
+        auto value = tq.front();
+        benchmark::DoNotOptimize(value);
+        benchmark::ClobberMemory();
+    }
+
+    state.SetItemsProcessed(items_count);
+}
+
+static void
 BM_TimeQueue_PopFront(benchmark::State& state)
 {
     timeq::time_queue<int> tq(state.range(0), 1, service, kIterations);
@@ -164,6 +183,7 @@ BM_TimeQueue_PushAndPop_Interval_125ms(benchmark::State& state)
 BENCHMARK(BM_TimeQueue_Construct)->Arg(300);
 BENCHMARK(BM_TimeQueue_Push)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_Pop)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
+BENCHMARK(BM_TimeQueue_Front)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_PopFront)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_Size);
 BENCHMARK(BM_TimeQueue_Empty);
