@@ -94,7 +94,7 @@ namespace timeq {
             std::uint32_t expired{ 0 };
         };
 
-#ifdef __clang__
+#if defined(__clang__) || (defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12)
         template<typename U>
         element(U) -> element<U>;
 #endif
@@ -391,11 +391,6 @@ namespace timeq {
         /// Tick service for calculating new tick and jumps in time.
         std::shared_ptr<tick_service> _tick_service;
     };
-
-#ifndef __clang__
-    template<typename T, typename U>
-    time_queue<T>::element(U)->time_queue<T>::element<U>;
-#endif
 
 #undef FORCE_INLINE
 }; // namespace timeq
