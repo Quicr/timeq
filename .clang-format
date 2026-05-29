@@ -1,10 +1,12 @@
 ---
-Language: Cpp
-BasedOnStyle: Microsoft
-AllowShortBlocksOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortFunctionsOnASingleLine: true
-AlwaysBreakTemplateDeclarations: Yes
+Language:      Cpp
+BasedOnStyle:  Mozilla
+
+BreakAfterAttributes: Leave
 ColumnLimit: 120
-PointerAlignment: Left
-SpaceAfterTemplateKeyword: false
+IndentWidth: 4
+NamespaceIndentation: All
+BraceWrapping:
+  AfterFunction: false
+InsertNewlineAtEOF: true
+...
