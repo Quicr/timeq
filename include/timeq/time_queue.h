@@ -83,6 +83,15 @@ namespace timeq {
             std::uint32_t expired{ 0 };
         };
 
+        struct element_pointer
+        {
+            /// Value of front object
+            std::unique_ptr<T> value;
+
+            /// Number of items expired before on this front access
+            std::uint32_t expired{ 0 };
+        };
+
         /**
          * @brief Construct a time_queue with defaults or supplied parameters
          *
@@ -186,12 +195,12 @@ namespace timeq {
          *
          * @returns Element of the front value
          */
-        FORCE_INLINE element front()
+        FORCE_INLINE element_pointer front()
         {
             const tick_type ticks = advance();
 
             if (_queue.empty()) {
-                return { std::nullopt, 0 };
+                return { nullptr, 0 };
             }
 
             std::uint32_t expired = 0;
@@ -206,15 +215,15 @@ namespace timeq {
                 }
 
                 if (pop_wait_ttl > ticks) {
-                    return { std::nullopt, expired };
+                    return { nullptr, expired };
                 }
 
-                return { bucket->at(value_index), expired };
+                return { std::make_unique<T>(bucket->at(value_index)), expired };
             }
 
             clear();
 
-            return { std::nullopt, expired };
+            return { nullptr, expired };
         }
 
         /**
@@ -225,13 +234,15 @@ namespace timeq {
         [[nodiscard]] FORCE_INLINE element pop_front()
         {
             auto&& [value, expired] = front();
-            element elem{ std::move(value), expired };
 
-            if (elem.value.has_value()) {
+            if (value) {
+                element elem{ std::make_optional<T>(std::move(*value)), expired };
                 pop();
+
+                return elem;
             }
 
-            return elem;
+            return { std::nullopt, expired };
         }
 
         FORCE_INLINE constexpr std::size_t size() const noexcept { return _queue.size() - _queue_index; }

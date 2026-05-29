@@ -29,13 +29,13 @@ TEST(time_queue, PushAndExpire)
     time_queue<int> tq(10, 1, tick_manager);
 
     tq.push(123, 2);
-    ASSERT_EQ(tq.front().value.value(), 123);
+    ASSERT_EQ(*tq.front().value, 123);
 
     tick_manager->ticks += std::chrono::milliseconds(1);
-    ASSERT_EQ(tq.front().value.value(), 123);
+    ASSERT_EQ(*tq.front().value, 123);
 
     tick_manager->ticks += std::chrono::milliseconds(1);
-    ASSERT_FALSE(tq.front().value.has_value());
+    ASSERT_FALSE(tq.front().value);
 }
 
 TEST(time_queue, PushAndPop)
@@ -46,7 +46,7 @@ TEST(time_queue, PushAndPop)
     ASSERT_EQ(tq.pop_front().value.value(), 123);
 
     auto elem = tq.front();
-    ASSERT_FALSE(elem.value.has_value());
+    ASSERT_FALSE(elem.value);
 }
 
 TEST(time_queue, PushAndExpireBeforePop)
