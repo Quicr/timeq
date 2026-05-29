@@ -135,6 +135,7 @@ BM_TimeQueue_PushAndPopLoaded(benchmark::State& state)
         }
 
         benchmark::DoNotOptimize(items_count);
+        benchmark::ClobberMemory();
     }
 
     state.SetItemsProcessed(items_count);
@@ -185,8 +186,8 @@ BENCHMARK(BM_TimeQueue_Push)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_Pop)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_Front)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_PopFront)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
-BENCHMARK(BM_TimeQueue_Size);
-BENCHMARK(BM_TimeQueue_Empty);
+BENCHMARK(BM_TimeQueue_Size)->Iterations(kIterations);
+BENCHMARK(BM_TimeQueue_Empty)->Iterations(kIterations);
 BENCHMARK(BM_TimeQueue_PushAndPopLoaded)->Arg(5000)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_PushAndPop_Interval_1ms)->Arg(5000)->Arg(1'000'000);
 BENCHMARK(BM_TimeQueue_PushAndPop_Interval_125ms)->Arg(5000)->Arg(1'000'000);

@@ -74,21 +74,10 @@ namespace timeq {
         using queue_type = std::vector<queue_value_type>;
 
       public:
-        template<typename ElemType>
         struct element
         {
             /// Value of front object
-            std::optional<ElemType> value;
-
-            /// Number of items expired before on this front access
-            std::uint32_t expired{ 0 };
-        };
-
-        template<typename ElemType>
-        struct element<ElemType&>
-        {
-            /// Value of front object
-            std::optional<std::reference_wrapper<ElemType>> value;
+            std::optional<T> value;
 
             /// Number of items expired before on this front access
             std::uint32_t expired{ 0 };
@@ -197,7 +186,7 @@ namespace timeq {
          *
          * @returns Element of the front value
          */
-        FORCE_INLINE element<T&> front()
+        FORCE_INLINE element front()
         {
             const tick_type ticks = advance();
 
@@ -233,10 +222,10 @@ namespace timeq {
          *
          * @returns element of the popped value
          */
-        [[nodiscard]] FORCE_INLINE element<T> pop_front()
+        [[nodiscard]] FORCE_INLINE element pop_front()
         {
             auto&& [value, expired] = front();
-            element<T> elem{ value.has_value() ? std::make_optional(std::move(value->get())) : std::nullopt, expired };
+            element elem{ std::move(value), expired };
 
             if (elem.value.has_value()) {
                 pop();
