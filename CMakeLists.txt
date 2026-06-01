@@ -54,7 +54,7 @@ if(BUILD_TESTING)
         add_subdirectory(tests)
     endif()
 
-    if(timeq_BUILD_BENCHMARKS)
+    if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND timeq_BUILD_BENCHMARKS)
         add_subdirectory(benchmark)
     endif()
 endif()
