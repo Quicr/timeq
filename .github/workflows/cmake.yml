@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-latest ]
+        os: [  macos-latest, ubuntu-22.04 ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -32,6 +32,23 @@ jobs:
     - uses: actions/checkout@v6
       with:
         submodules: recursive
+
+    - name: Install Packages (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install llvm go google-benchmark
+        ln -s "$(brew --prefix llvm)/bin/clang-tidy" "/usr/local/bin/clang-tidy"
+
+    - name: Install Packages (Ubuntu)
+      if: matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm'
+      run: |
+        sudo apt-get install -y clang-tidy-15
+
+    - name: Configure GCC 12 (Ubuntu)
+      if: matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm'
+      run: |
+        echo "CC=/usr/bin/gcc-12" >> $GITHUB_ENV
+        echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTING=ON
@@ -50,7 +67,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-latest ]
+        os: [  macos-latest, ubuntu-22.04 ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -73,7 +90,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-latest ]
+        os: [  macos-latest, ubuntu-22.04 ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
