@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(timeq
     VERSION 1.0.0
-    DESCRIPTION "timeq, a Media over QUIC Library"
+    DESCRIPTION "Header-only C++20 library for time-bucketed aging FIFO queues with TTL expiration"
     LANGUAGES C CXX
 )
 
@@ -67,5 +67,4 @@ install(TARGETS timeq EXPORT timeq_targets)
 
 install(DIRECTORY include/ DESTINATION include)
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/timeq/version.h"
-        DESTINATION include/timeq)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/timeq/version.h" DESTINATION include/timeq)
