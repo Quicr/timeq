@@ -25,11 +25,11 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
-#include <memory>
 
 namespace timeq {
 #define FORCE_INLINE __attribute__((always_inline))
