@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(timeq
     VERSION 1.0.0
-    DESCRIPTION "timeq, a Media over QUIC Library"
+    DESCRIPTION "Header-only C++20 library for time-bucketed aging FIFO queues with TTL expiration"
     LANGUAGES C CXX
 )
 
@@ -20,8 +20,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(CMakeDependentOption)
 
-cmake_dependent_option(timeq_BUILD_TESTS "Build tests for timeq" ON CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OFF)
-cmake_dependent_option(timeq_BUILD_BENCHMARKS "Build benchmarks for timeq" ON CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OFF)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(timeq_IS_TOP_LEVEL ON)
+endif()
+
+cmake_dependent_option(timeq_BUILD_TESTS "Build tests for timeq" ON timeq_IS_TOP_LEVEL OFF)
+cmake_dependent_option(timeq_BUILD_BENCHMARKS "Build benchmarks for timeq" ON timeq_IS_TOP_LEVEL OFF)
 
 #=============================================================================#
 # Build the library
@@ -67,5 +71,4 @@ install(TARGETS timeq EXPORT timeq_targets)
 
 install(DIRECTORY include/ DESTINATION include)
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/timeq/version.h"
-        DESTINATION include/timeq)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/timeq/version.h" DESTINATION include/timeq)
