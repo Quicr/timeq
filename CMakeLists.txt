@@ -20,8 +20,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(CMakeDependentOption)
 
-cmake_dependent_option(timeq_BUILD_TESTS "Build tests for timeq" ON CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OFF)
-cmake_dependent_option(timeq_BUILD_BENCHMARKS "Build benchmarks for timeq" ON CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OFF)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(timeq_IS_TOP_LEVEL ON)
+endif()
+
+cmake_dependent_option(timeq_BUILD_TESTS "Build tests for timeq" ON timeq_IS_TOP_LEVEL OFF)
+cmake_dependent_option(timeq_BUILD_BENCHMARKS "Build benchmarks for timeq" ON timeq_IS_TOP_LEVEL OFF)
 
 #=============================================================================#
 # Build the library
