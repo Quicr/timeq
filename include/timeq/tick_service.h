@@ -14,9 +14,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <ratio>
 #include <thread>
-#include <type_traits>
 
 namespace timeq {
     /**
@@ -24,7 +25,7 @@ namespace timeq {
      */
     struct tick_service
     {
-        using tick_type = size_t;
+        using tick_type = std::size_t;
 
         virtual ~tick_service() = default;
 

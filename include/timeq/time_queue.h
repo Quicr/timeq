@@ -22,12 +22,16 @@
 
 #include "tick_service.h"
 
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <map>
+#include <memory>
 #include <optional>
 #include <stdexcept>
-#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace timeq {
