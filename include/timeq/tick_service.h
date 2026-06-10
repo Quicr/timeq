@@ -95,10 +95,8 @@ namespace timeq {
                   std::chrono::duration_cast<std::chrono::microseconds>(now - prev_time).count();
                 std::this_thread::sleep_for(std::chrono::microseconds(_sleep_delay_us));
 
-                if (delta >= _sleep_delay_us) {
-                    _ticks.fetch_add(delta, std::memory_order_relaxed);
-                    prev_time = now;
-                }
+                _ticks.fetch_add(delta, std::memory_order_relaxed);
+                prev_time = now;
             }
         }
 

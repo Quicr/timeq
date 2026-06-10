@@ -194,11 +194,18 @@ namespace timeq {
          */
         FORCE_INLINE void pop() noexcept
         {
-            if (_queue.empty() || ++_queue_index < _queue.size()) {
+            if (_queue.empty()) {
                 return;
             }
 
-            clear();
+            if (++_queue_index >= _queue.size()) {
+                clear();
+                return;
+            }
+
+            if (_queue_index >= size()) {
+                compact_consumed_queue();
+            }
         }
 
         /**
@@ -219,7 +226,7 @@ namespace timeq {
             while (_queue_index < _queue.size()) {
                 auto& [bucket, value_index, expiry_tick, pop_wait_ttl] = _queue.at(_queue_index);
 
-                if (ticks > expiry_tick || value_index >= bucket->size()) {
+                if (ticks >= expiry_tick || value_index >= bucket->size()) {
                     expired++;
                     _queue_index++;
                     continue;
@@ -265,22 +272,26 @@ namespace timeq {
          */
         FORCE_INLINE void clear() noexcept
         {
-            if (_queue.empty()) {
-                return;
+            if (!_queue.empty()) {
+                _queue.clear();
+                _buckets.clear();
             }
-
-            _queue.clear();
-
-            _buckets.clear();
 
             _queue_index = _bucket_index = 0;
             _last_tick_queue_cleared = _current_ticks;
+            _last_bucket_advance_tick = _current_ticks;
         }
 
       protected:
+        [[nodiscard]] FORCE_INLINE constexpr index_type bucket_count() const noexcept
+        {
+            // The spare bucket prevents max-duration TTLs pushed mid-interval from being cleared early.
+            return (_duration / _interval) + 1;
+        }
+
         [[nodiscard]] FORCE_INLINE constexpr index_type get_future_bucket_index(index_type delta)
         {
-            return (_bucket_index + delta) % (_duration / _interval);
+            return (_bucket_index + delta) % bucket_count();
         }
 
         /**
@@ -293,34 +304,30 @@ namespace timeq {
         {
             const tick_type new_tick_count =
               std::chrono::duration_cast<std::chrono::milliseconds>(_tick_service->get()).count();
-            const tick_type delta = new_tick_count - _current_ticks;
+            const tick_type delta = new_tick_count - _last_bucket_advance_tick;
             _current_ticks = new_tick_count;
 
-            if (delta == 0) {
+            if (delta < _interval) {
                 return new_tick_count;
             }
 
-            if (delta >= _duration) {
+            const auto intervals_elapsed = delta / _interval;
+
+            if (intervals_elapsed >= bucket_count()) {
                 clear();
                 return new_tick_count;
             }
 
-            for (std::size_t i = 0; i < delta / _interval; ++i) {
+            for (std::size_t i = 0; i < intervals_elapsed; ++i) {
                 bucket_type& bucket = _buckets[get_future_bucket_index(i)];
                 bucket.clear();
-                bucket.shrink_to_fit();
             }
 
-            _bucket_index = get_future_bucket_index(delta / _interval);
+            _bucket_index = get_future_bucket_index(intervals_elapsed);
+            _last_bucket_advance_tick += intervals_elapsed * _interval;
 
-            if (_last_tick_queue_cleared > _duration && !_queue.empty()) {
-                if (_queue_index >= _queue.size()) {
-                    _queue.clear();
-                } else {
-                    _queue.erase(_queue.begin(), std::next(_queue.begin(), _queue_index));
-                }
-
-                _queue_index = 0;
+            if (_current_ticks - _last_tick_queue_cleared > _duration * 0.2 && !_queue.empty()) {
+                compact_consumed_queue();
                 _last_tick_queue_cleared = _current_ticks;
             }
 
@@ -350,18 +357,33 @@ namespace timeq {
                 ttl = _duration;
             }
 
-            auto relative_ttl = ttl / _interval;
-
             const tick_type ticks = advance();
 
             const tick_type expiry_tick = ticks + ttl;
 
-            const index_type future_index = get_future_bucket_index(relative_ttl - 1);
+            const tick_type ticks_until_expiry = expiry_tick - _last_bucket_advance_tick;
+            const index_type intervals_until_clear = (ticks_until_expiry + _interval - 1) / _interval;
+            const index_type future_index = get_future_bucket_index(intervals_until_clear - 1);
 
             bucket_type& bucket = _buckets[future_index];
 
             bucket.emplace_back(value);
             _queue.emplace_back(bucket, bucket.size() - 1, expiry_tick, ticks + delay_ttl);
+        }
+
+        FORCE_INLINE void compact_consumed_queue() noexcept
+        {
+            if (_queue_index == 0) {
+                return;
+            }
+
+            if (_queue_index >= _queue.size()) {
+                clear();
+                return;
+            }
+
+            _queue.erase(_queue.begin(), std::next(_queue.begin(), _queue_index));
+            _queue_index = 0;
         }
 
       protected:
@@ -382,6 +404,9 @@ namespace timeq {
 
         /// Last calculated tick value when queue was cleared.
         tick_type _last_tick_queue_cleared{ 0 };
+
+        /// Last tick represented by the current bucket index.
+        tick_type _last_bucket_advance_tick{ 0 };
 
         /// The memory storage for all elements to be managed.
         std::map<std::uint64_t, bucket_type> _buckets;
