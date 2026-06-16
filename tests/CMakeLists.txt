@@ -9,6 +9,7 @@ CPMAddPackage("gh:google/googletest@1.17.0")
 
 add_executable(timeq_test
     time_queue.cpp
+    bucketless_time_queue.cpp
 )
 
 set_target_properties(timeq_test PROPERTIES

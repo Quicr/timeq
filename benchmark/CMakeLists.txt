@@ -9,6 +9,7 @@ CPMAddPackage("gh:google/benchmark@1.9.5")
 
 add_executable(timeq_benchmark
     time_queue.cpp
+    bucketless_time_queue.cpp
 )
 
 set_target_properties(timeq_benchmark PROPERTIES

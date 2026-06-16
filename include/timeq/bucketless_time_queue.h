@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 /**
- *  time_queue.h
+ *  bucketless_time_queue.h
  *
  *  Description:
  *      A time based queue, where the length of the queue is a duration,
@@ -44,32 +44,15 @@ namespace timeq {
      * @tparam T The element type to be stored.
      */
     template<typename T>
-    class time_queue
+    class bucketless_time_queue
     {
       protected:
         using tick_type = tick_service::tick_type;
         using index_type = std::uint64_t;
-        using bucket_type = std::vector<T>;
 
         struct queue_value_type
         {
-            queue_value_type() = default;
-            queue_value_type(bucket_type& bucket,
-                             index_type value_index,
-                             tick_type expiry_tick,
-                             tick_type wait_for_tick)
-              : bucket(std::addressof(bucket))
-              , value_index(value_index)
-              , expiry_tick(expiry_tick)
-              , wait_for_tick(wait_for_tick)
-            {
-            }
-
-            queue_value_type(const queue_value_type&) = default;
-            queue_value_type& operator=(const queue_value_type&) = default;
-
-            bucket_type* bucket;
-            index_type value_index;
+            T value;
             tick_type expiry_tick;
             tick_type wait_for_tick;
         };
@@ -106,7 +89,7 @@ namespace timeq {
         using reference = element<T&>;
 
         /**
-         * @brief Construct a time_queue with defaults or supplied parameters
+         * @brief Construct a bucketless_time_queue with defaults or supplied parameters
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Value must be > 0, < duration, duration % interval == 0.
@@ -116,16 +99,16 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or the tick_service is
          * null.
          */
-        time_queue(std::size_t duration,
-                   std::size_t interval,
-                   std::shared_ptr<tick_service> tick_service,
-                   std::size_t initial_queue_size)
+        bucketless_time_queue(std::size_t duration,
+                              std::size_t interval,
+                              std::shared_ptr<tick_service> tick_service,
+                              std::size_t initial_queue_size)
           : _duration{ duration }
           , _interval{ interval }
           , _tick_service(std::move(tick_service))
         {
             if (duration == 0 || duration % interval != 0 || duration == interval) {
-                throw std::invalid_argument("Invalid time_queue constructor args");
+                throw std::invalid_argument("Invalid bucketless_time_queue constructor args");
             }
 
             if (!_tick_service) {
@@ -136,7 +119,7 @@ namespace timeq {
         }
 
         /**
-         * @brief Construct a time_queue with defaults or supplied parameters
+         * @brief Construct a bucketless_time_queue with defaults or supplied parameters
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Must be > 0, < duration, duration % interval == 0.
@@ -145,17 +128,17 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or If the tick_service is
          *         null.
          */
-        time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
-          : time_queue(duration, interval, std::move(tick_service), duration / interval)
+        bucketless_time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
+          : bucketless_time_queue(duration, interval, std::move(tick_service), duration / interval)
         {
         }
 
-        time_queue() = delete;
-        time_queue(const time_queue&) = default;
-        time_queue(time_queue&&) noexcept = default;
+        bucketless_time_queue() = delete;
+        bucketless_time_queue(const bucketless_time_queue&) = default;
+        bucketless_time_queue(bucketless_time_queue&&) noexcept = default;
 
-        time_queue& operator=(const time_queue&) = default;
-        time_queue& operator=(time_queue&&) noexcept = default;
+        bucketless_time_queue& operator=(const bucketless_time_queue&) = default;
+        bucketless_time_queue& operator=(bucketless_time_queue&&) noexcept = default;
 
         /**
          * @brief pushes a new value onto the queue with a time-to-live.
@@ -226,9 +209,9 @@ namespace timeq {
             std::uint32_t expired = 0;
 
             while (_queue_index < _queue.size()) {
-                auto& [bucket, value_index, expiry_tick, pop_wait_ttl] = _queue.at(_queue_index);
+                auto& [value, expiry_tick, pop_wait_ttl] = _queue.at(_queue_index);
 
-                if (ticks >= expiry_tick || value_index >= bucket->size()) {
+                if (ticks >= expiry_tick) {
                     expired++;
                     _queue_index++;
                     continue;
@@ -238,7 +221,7 @@ namespace timeq {
                     return { std::nullopt, expired };
                 }
 
-                return { bucket->at(value_index), expired };
+                return { value, expired };
             }
 
             clear();
@@ -276,26 +259,13 @@ namespace timeq {
         {
             if (!_queue.empty()) {
                 _queue.clear();
-                _buckets.clear();
             }
 
-            _queue_index = _bucket_index = 0;
+            _queue_index = 0;
             _last_tick_queue_cleared = _current_ticks;
-            _last_bucket_advance_tick = _current_ticks;
         }
 
       protected:
-        [[nodiscard]] FORCE_INLINE constexpr index_type bucket_count() const noexcept
-        {
-            // The spare bucket prevents max-duration TTLs pushed mid-interval from being cleared early.
-            return (_duration / _interval) + 1;
-        }
-
-        [[nodiscard]] FORCE_INLINE constexpr index_type get_future_bucket_index(index_type delta)
-        {
-            return (_bucket_index + delta) % bucket_count();
-        }
-
         /**
          * @brief Based on current time, adjust and move the bucket index with time
          *        (sliding window)
@@ -306,28 +276,17 @@ namespace timeq {
         {
             const tick_type new_tick_count =
               std::chrono::duration_cast<std::chrono::milliseconds>(_tick_service->get()).count();
-            const tick_type delta = new_tick_count - _last_bucket_advance_tick;
+            const tick_type delta = new_tick_count - _current_ticks;
             _current_ticks = new_tick_count;
 
             if (delta < _interval) {
-                return new_tick_count;
+                return _current_ticks;
             }
 
-            const auto intervals_elapsed = delta / _interval;
-
-            if (intervals_elapsed >= bucket_count()) {
+            if (delta > _duration) {
                 clear();
-                return new_tick_count;
+                return _current_ticks;
             }
-
-            for (std::size_t i = 0; i < intervals_elapsed; ++i) {
-                bucket_type& bucket = _buckets[get_future_bucket_index(i)];
-                bucket.clear();
-                bucket.shrink_to_fit();
-            }
-
-            _bucket_index = get_future_bucket_index(intervals_elapsed);
-            _last_bucket_advance_tick += delta;
 
             if (_current_ticks - _last_tick_queue_cleared > _duration * 0.2 && !_queue.empty()) {
                 compact_consumed_queue();
@@ -364,14 +323,7 @@ namespace timeq {
 
             const tick_type expiry_tick = ticks + ttl;
 
-            const tick_type ticks_until_expiry = expiry_tick - _last_bucket_advance_tick;
-            const index_type intervals_until_clear = (ticks_until_expiry + _interval - 1) / _interval;
-            const index_type future_index = get_future_bucket_index(intervals_until_clear - 1);
-
-            bucket_type& bucket = _buckets[future_index];
-
-            bucket.emplace_back(value);
-            _queue.emplace_back(bucket, bucket.size() - 1, expiry_tick, ticks + delay_ttl);
+            _queue.emplace_back(value, expiry_tick, ticks + delay_ttl);
         }
 
         FORCE_INLINE void compact_consumed_queue() noexcept
@@ -404,9 +356,6 @@ namespace timeq {
         /// The interval at which buckets are cleared in ticks.
         const std::size_t _interval;
 
-        /// The index in time of the current bucket.
-        index_type _bucket_index{ 0 };
-
         /// The index of the first valid item in the queue.
         index_type _queue_index{ 0 };
 
@@ -415,12 +364,6 @@ namespace timeq {
 
         /// Last calculated tick value when queue was cleared.
         tick_type _last_tick_queue_cleared{ 0 };
-
-        /// Last tick represented by the current bucket index.
-        tick_type _last_bucket_advance_tick{ 0 };
-
-        /// The memory storage for all elements to be managed.
-        std::map<index_type, bucket_type> _buckets;
 
         /// The FIFO ordered queue of values as they were inserted.
         queue_type _queue;
