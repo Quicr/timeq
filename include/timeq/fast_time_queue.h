@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 /**
- *  bucketless_time_queue.h
+ *  fast_time_queue.h
  *
  *  Description:
  *      A time based queue, where the length of the queue is a duration,
@@ -44,7 +44,7 @@ namespace timeq {
      * @tparam T The element type to be stored.
      */
     template<typename T>
-    class bucketless_time_queue
+    class fast_time_queue
     {
       protected:
         using tick_type = tick_service::tick_type;
@@ -89,7 +89,7 @@ namespace timeq {
         using reference = element<T&>;
 
         /**
-         * @brief Construct a bucketless_time_queue with defaults or supplied parameters
+         * @brief Construct a fast_time_queue with defaults or supplied parameters
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Value must be > 0, < duration, duration % interval == 0.
@@ -99,16 +99,16 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or the tick_service is
          * null.
          */
-        bucketless_time_queue(std::size_t duration,
-                              std::size_t interval,
-                              std::shared_ptr<tick_service> tick_service,
-                              std::size_t initial_queue_size)
+        fast_time_queue(std::size_t duration,
+                        std::size_t interval,
+                        std::shared_ptr<tick_service> tick_service,
+                        std::size_t initial_queue_size)
           : _duration{ duration }
           , _interval{ interval }
           , _tick_service(std::move(tick_service))
         {
             if (duration == 0 || duration % interval != 0 || duration == interval) {
-                throw std::invalid_argument("Invalid bucketless_time_queue constructor args");
+                throw std::invalid_argument("Invalid fast_time_queue constructor args");
             }
 
             if (!_tick_service) {
@@ -119,7 +119,7 @@ namespace timeq {
         }
 
         /**
-         * @brief Construct a bucketless_time_queue with defaults or supplied parameters
+         * @brief Construct a fast_time_queue with defaults or supplied parameters
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Must be > 0, < duration, duration % interval == 0.
@@ -128,17 +128,17 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or If the tick_service is
          *         null.
          */
-        bucketless_time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
-          : bucketless_time_queue(duration, interval, std::move(tick_service), duration / interval)
+        fast_time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
+          : fast_time_queue(duration, interval, std::move(tick_service), duration / interval)
         {
         }
 
-        bucketless_time_queue() = delete;
-        bucketless_time_queue(const bucketless_time_queue&) = default;
-        bucketless_time_queue(bucketless_time_queue&&) noexcept = default;
+        fast_time_queue() = delete;
+        fast_time_queue(const fast_time_queue&) = default;
+        fast_time_queue(fast_time_queue&&) noexcept = default;
 
-        bucketless_time_queue& operator=(const bucketless_time_queue&) = default;
-        bucketless_time_queue& operator=(bucketless_time_queue&&) noexcept = default;
+        fast_time_queue& operator=(const fast_time_queue&) = default;
+        fast_time_queue& operator=(fast_time_queue&&) noexcept = default;
 
         /**
          * @brief pushes a new value onto the queue with a time-to-live.

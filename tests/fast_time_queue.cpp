@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <timeq/bucketless_time_queue.h>
+#include <timeq/fast_time_queue.h>
 #include <timeq/tick_service.h>
 
 using namespace timeq;
@@ -18,26 +18,26 @@ struct test_tick_service : public tick_service
 static auto tick_manager = std::make_shared<test_tick_service>();
 
 template<typename T>
-class inspectable_bucketless_time_queue : public bucketless_time_queue<T>
+class inspectable_fast_time_queue : public fast_time_queue<T>
 {
   public:
-    using bucketless_time_queue<T>::bucketless_time_queue;
+    using fast_time_queue<T>::fast_time_queue;
 
     std::size_t raw_queue_size() const noexcept { return this->_queue.size(); }
 
     std::size_t queue_index() const noexcept { return this->_queue_index; }
 };
 
-TEST(bucketless_time_queue, Construction)
+TEST(fast_time_queue, Construction)
 {
-    ASSERT_NO_THROW(bucketless_time_queue<int>(10, 1, tick_manager));
-    ASSERT_THROW(bucketless_time_queue<int>(10, 1, nullptr), std::invalid_argument);
-    ASSERT_THROW(bucketless_time_queue<int>(0, 1, tick_manager), std::invalid_argument);
+    ASSERT_NO_THROW(fast_time_queue<int>(10, 1, tick_manager));
+    ASSERT_THROW(fast_time_queue<int>(10, 1, nullptr), std::invalid_argument);
+    ASSERT_THROW(fast_time_queue<int>(0, 1, tick_manager), std::invalid_argument);
 }
 
-TEST(bucketless_time_queue, PushAndExpire)
+TEST(fast_time_queue, PushAndExpire)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     tq.push(123, 2);
     ASSERT_EQ(tq.front().value.value(), 123);
@@ -49,10 +49,10 @@ TEST(bucketless_time_queue, PushAndExpire)
     ASSERT_FALSE(tq.front().value.has_value());
 }
 
-TEST(bucketless_time_queue, PushMidIntervalWithMaxTtlExpiresAtTtl)
+TEST(fast_time_queue, PushMidIntervalWithMaxTtlExpiresAtTtl)
 {
     auto tick_manager = std::make_shared<test_tick_service>();
-    bucketless_time_queue<int> tq(5000, 500, tick_manager);
+    fast_time_queue<int> tq(5000, 500, tick_manager);
 
     tick_manager->ticks = std::chrono::milliseconds(100);
     tq.push(123, 5000);
@@ -69,10 +69,10 @@ TEST(bucketless_time_queue, PushMidIntervalWithMaxTtlExpiresAtTtl)
     ASSERT_FALSE(tq.front().value.has_value());
 }
 
-TEST(bucketless_time_queue, SubIntervalUpdatesStillAdvanceBuckets)
+TEST(fast_time_queue, SubIntervalUpdatesStillAdvanceBuckets)
 {
     auto tick_manager = std::make_shared<test_tick_service>();
-    bucketless_time_queue<int> tq(5000, 500, tick_manager);
+    fast_time_queue<int> tq(5000, 500, tick_manager);
 
     tq.push(123, 500);
 
@@ -85,10 +85,10 @@ TEST(bucketless_time_queue, SubIntervalUpdatesStillAdvanceBuckets)
     ASSERT_TRUE(tq.empty());
 }
 
-TEST(bucketless_time_queue, DelayedPopBacklogCompactsQueue)
+TEST(fast_time_queue, DelayedPopBacklogCompactsQueue)
 {
     auto tick_manager = std::make_shared<test_tick_service>();
-    inspectable_bucketless_time_queue<int> tq(5000, 500, tick_manager);
+    inspectable_fast_time_queue<int> tq(5000, 500, tick_manager);
 
     for (int i = 0; i < 80; ++i) {
         tick_manager->ticks = std::chrono::milliseconds(i * 100);
@@ -117,9 +117,9 @@ TEST(bucketless_time_queue, DelayedPopBacklogCompactsQueue)
     EXPECT_EQ(tq.front().value.value(), 75);
 }
 
-TEST(bucketless_time_queue, PushAndPop)
+TEST(fast_time_queue, PushAndPop)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     tq.push(123, 1);
     ASSERT_EQ(tq.pop_front().value.value(), 123);
@@ -128,9 +128,9 @@ TEST(bucketless_time_queue, PushAndPop)
     ASSERT_FALSE(elem.value.has_value());
 }
 
-TEST(bucketless_time_queue, PushAndExpireBeforePop)
+TEST(fast_time_queue, PushAndExpireBeforePop)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     tq.push(123, 1);
 
@@ -138,9 +138,9 @@ TEST(bucketless_time_queue, PushAndExpireBeforePop)
     ASSERT_FALSE(tq.pop_front().value.has_value());
 }
 
-TEST(bucketless_time_queue, PushAndPopSequential)
+TEST(fast_time_queue, PushAndPopSequential)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     for (int i = 0; i < 10; ++i) {
         tq.push(i, 1);
@@ -154,9 +154,9 @@ TEST(bucketless_time_queue, PushAndPopSequential)
     ASSERT_EQ(popped, 10);
 }
 
-TEST(bucketless_time_queue, PushAndPopSequentialButExpireSome)
+TEST(fast_time_queue, PushAndPopSequentialButExpireSome)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     for (int i = 0; i < 10; ++i) {
         tq.push(i, i + 1);
@@ -181,9 +181,9 @@ TEST(bucketless_time_queue, PushAndPopSequentialButExpireSome)
     ASSERT_EQ(popped, 3);
 }
 
-TEST(bucketless_time_queue, ExpireAllBeforePop)
+TEST(fast_time_queue, ExpireAllBeforePop)
 {
-    bucketless_time_queue<int> tq(10, 1, tick_manager);
+    fast_time_queue<int> tq(10, 1, tick_manager);
 
     for (int i = 0; i < 10; ++i) {
         tq.push(i, i + 1);
