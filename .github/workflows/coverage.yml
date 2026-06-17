@@ -49,7 +49,8 @@ jobs:
       id: coverage
       working-directory: ${{ github.workspace }}
       run: |
-        COVERAGE=$(gcovr -r . \
+        COVERAGE=$(gcovr . \
+          --search-path build \
           --filter 'include/timeq/' \
           --exclude 'build/_deps/' \
           --json-summary - \
