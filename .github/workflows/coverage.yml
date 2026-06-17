@@ -1,0 +1,72 @@
+name: Coverage
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  coverage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Install Packages
+      run: sudo apt-get install -y gcovr
+
+    - name: Configure GCC 12
+      run: |
+        echo "CC=/usr/bin/gcc-12" >> $GITHUB_ENV
+        echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: |
+        cmake -B ${{ github.workspace }}/build \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DBUILD_TESTING=ON \
+          -Dtimeq_BUILD_BENCHMARKS=OFF \
+          -DCMAKE_CXX_FLAGS="--coverage" \
+          -DCMAKE_C_FLAGS="--coverage" \
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+    - name: Build
+      run: cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }} -j
+
+    - name: Test
+      working-directory: ${{ github.workspace }}/build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+    - name: Calculate Coverage
+      id: coverage
+      working-directory: ${{ github.workspace }}
+      run: |
+        COVERAGE=$(gcovr -r . \
+          --filter 'include/timeq/' \
+          --exclude 'build/_deps/' \
+          --json-summary - \
+          | python3 -c "import json, sys; print(f\"{json.load(sys.stdin)['line_percent']:.1f}\")")
+        echo "percentage=${COVERAGE}" >> $GITHUB_OUTPUT
+        echo "Line coverage: ${COVERAGE}%"
+
+    - name: Update Coverage Badge
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: schneegans/dynamic-badges-action@v1.8.0
+      with:
+        auth: ${{ secrets.COVERAGE_GIST_TOKEN }}
+        gistID: ${{ secrets.COVERAGE_GIST_ID }}
+        filename: coverage.json
+        label: coverage
+        message: ${{ steps.coverage.outputs.percentage }}%
+        valColorRange: ${{ steps.coverage.outputs.percentage }}
+        maxColorRange: 100
+        minColorRange: 0
+        namedLogo: gcc

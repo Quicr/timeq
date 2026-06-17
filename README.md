@@ -1,6 +1,7 @@
 # timeq
 
 [![CMake](https://github.com/Quicr/timeq/actions/workflows/cmake.yml/badge.svg)](https://github.com/Quicr/timeq/actions/workflows/cmake.yml)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/GhostofCookie/403ea3296e7242476446c3d2185cb359/raw/coverage.json)
 
 A time-based queue where the length of the queue is a duration, divided into buckets
 based on a given time interval. As time progresses, buckets in the past are cleared,
