@@ -26,6 +26,7 @@ jobs:
       run: |
         echo "CC=/usr/bin/gcc-12" >> $GITHUB_ENV
         echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
+        echo "GCOV=/usr/bin/gcov-12" >> $GITHUB_ENV
 
     - name: Configure CMake
       run: |
@@ -49,8 +50,9 @@ jobs:
       id: coverage
       working-directory: ${{ github.workspace }}
       run: |
-        COVERAGE=$(gcovr . \
-          --search-path build \
+        COVERAGE=$(gcovr -r . \
+          --gcov-executable gcov-12 \
+          --object-directory build \
           --filter 'include/timeq/' \
           --exclude 'build/_deps/' \
           --json-summary - \
