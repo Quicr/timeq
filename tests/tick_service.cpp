@@ -11,41 +11,38 @@ using namespace std::chrono_literals;
 
 namespace {
 
-/// Lower bound as a fraction of wall-clock elapsed time (accounts for scheduler jitter).
-constexpr double k_min_elapsed_fraction = 0.4;
+    /// Lower bound as a fraction of wall-clock elapsed time (accounts for scheduler jitter).
+    constexpr double k_min_elapsed_fraction = 0.4;
 
-/// Upper bound slack beyond wall-clock elapsed time (accounts for overshoot and startup lag).
-constexpr auto k_max_elapsed_slack = 30ms;
+    /// Upper bound slack beyond wall-clock elapsed time (accounts for overshoot and startup lag).
+    constexpr auto k_max_elapsed_slack = 30ms;
 
-void expect_ticks_within_wall_clock(
-    std::chrono::microseconds tick_delta,
-    std::chrono::microseconds wall_elapsed)
-{
-    const auto min_expected = std::chrono::microseconds(
-      static_cast<std::int64_t>(wall_elapsed.count() * k_min_elapsed_fraction));
-    const auto max_expected = wall_elapsed + k_max_elapsed_slack;
+    void expect_ticks_within_wall_clock(std::chrono::microseconds tick_delta, std::chrono::microseconds wall_elapsed)
+    {
+        const auto min_expected =
+          std::chrono::microseconds(static_cast<std::int64_t>(wall_elapsed.count() * k_min_elapsed_fraction));
+        const auto max_expected = wall_elapsed + k_max_elapsed_slack;
 
-    EXPECT_GE(tick_delta, min_expected)
-      << "ticks (" << tick_delta.count() << "us) fell below "
-      << (k_min_elapsed_fraction * 100) << "% of wall time (" << wall_elapsed.count() << "us)";
-    EXPECT_LE(tick_delta, max_expected)
-      << "ticks (" << tick_delta.count() << "us) exceeded wall time (" << wall_elapsed.count()
-      << "us) plus slack";
-}
+        EXPECT_GE(tick_delta, min_expected)
+          << "ticks (" << tick_delta.count() << "us) fell below " << (k_min_elapsed_fraction * 100)
+          << "% of wall time (" << wall_elapsed.count() << "us)";
+        EXPECT_LE(tick_delta, max_expected)
+          << "ticks (" << tick_delta.count() << "us) exceeded wall time (" << wall_elapsed.count() << "us) plus slack";
+    }
 
-std::chrono::microseconds measure_tick_growth(threaded_tick_service& service,
-                                              std::chrono::milliseconds wait_duration)
-{
-    const auto initial_ticks = service.get();
-    const auto wall_start = std::chrono::steady_clock::now();
-    std::this_thread::sleep_for(wait_duration);
-    const auto wall_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::steady_clock::now() - wall_start);
+    std::chrono::microseconds measure_tick_growth(threaded_tick_service& service,
+                                                  std::chrono::milliseconds wait_duration)
+    {
+        const auto initial_ticks = service.get();
+        const auto wall_start = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(wait_duration);
+        const auto wall_elapsed =
+          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - wall_start);
 
-    const auto tick_delta = service.get() - initial_ticks;
-    expect_ticks_within_wall_clock(tick_delta, wall_elapsed);
-    return tick_delta;
-}
+        const auto tick_delta = service.get() - initial_ticks;
+        expect_ticks_within_wall_clock(tick_delta, wall_elapsed);
+        return tick_delta;
+    }
 
 } // namespace
 
