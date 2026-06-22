@@ -20,8 +20,48 @@ static auto tick_manager = std::make_shared<test_tick_service>();
 TEST(time_queue, Construction)
 {
     ASSERT_NO_THROW(time_queue<int>(10, 1, tick_manager));
-    ASSERT_THROW(time_queue<int>(10, 1, nullptr), std::invalid_argument);
+    ASSERT_NO_THROW(time_queue<int>(10, 1, tick_manager, 10000));
+    ASSERT_NO_THROW(time_queue<int>(10, 1, tick_manager, 0));
     ASSERT_THROW(time_queue<int>(0, 1, tick_manager), std::invalid_argument);
+    ASSERT_THROW(time_queue<int>(10, 3, tick_manager), std::invalid_argument);
+    ASSERT_THROW(time_queue<int>(1, 1, tick_manager), std::invalid_argument);
+    ASSERT_THROW(time_queue<int>(10, 1, nullptr), std::invalid_argument);
+}
+
+TEST(time_queue, Clear)
+{
+    time_queue<int> tq(10, 1, tick_manager);
+
+    ASSERT_TRUE(tq.empty());
+
+    tq.push(123, 1);
+
+    ASSERT_FALSE(tq.empty());
+    ASSERT_EQ(tq.size(), 1);
+
+    tq.clear();
+    ASSERT_TRUE(tq.empty());
+
+    tq.clear();
+    ASSERT_TRUE(tq.empty());
+}
+
+TEST(time_queue, PushInvalid)
+{
+    time_queue<int> tq(10, 1, tick_manager);
+
+    try {
+        tq.push(123, 11);
+    } catch (...) {
+    }
+    ASSERT_THROW(tq.push(123, 11), std::invalid_argument);
+    ASSERT_NO_THROW(tq.push(123, 0));
+    ASSERT_NO_THROW(tq.push(123, 2));
+
+    const int a = 123;
+    ASSERT_THROW(tq.push(a, 11), std::invalid_argument);
+    ASSERT_NO_THROW(tq.push(a, 0));
+    ASSERT_NO_THROW(tq.push(a, 2));
 }
 
 TEST(time_queue, PushAndExpire)
@@ -43,10 +83,16 @@ TEST(time_queue, PushAndPop)
     time_queue<int> tq(10, 1, tick_manager);
 
     tq.push(123, 1);
+
+    ASSERT_EQ(tq.size(), 1);
+
     ASSERT_EQ(tq.pop_front().value.value(), 123);
 
     auto elem = tq.front();
     ASSERT_FALSE(elem.value.has_value());
+
+    tq.pop();
+    ASSERT_TRUE(tq.empty());
 }
 
 TEST(time_queue, PushAndExpireBeforePop)
@@ -102,6 +148,26 @@ TEST(time_queue, PushAndPopSequentialButExpireSome)
     ASSERT_EQ(popped, 3);
 }
 
+TEST(time_queue, PopAllAndCleanup)
+{
+    time_queue<int> tq(10, 1, tick_manager);
+
+    for (int i = 0; i < 10; ++i) {
+        tq.push(i, 1);
+    }
+
+    size_t popped = 0;
+    for (auto elem = tq.pop_front(); elem.value.has_value(); elem = tq.pop_front()) {
+        ASSERT_EQ(elem.value.value(), popped++);
+    }
+
+    ASSERT_EQ(popped, 10);
+
+    tick_manager->ticks = std::chrono::milliseconds(10);
+
+    ASSERT_TRUE(tq.empty());
+}
+
 TEST(time_queue, ExpireAllBeforePop)
 {
     time_queue<int> tq(10, 1, tick_manager);
@@ -121,6 +187,25 @@ TEST(time_queue, ExpireAllBeforePop)
         // has passed.
         FAIL();
     }
+
+    // Now we have updated the queue, we expect it to be empty.
+    ASSERT_TRUE(tq.empty());
+}
+
+TEST(time_queue, ExpireAllAndCleanupQueueOnUpdate)
+{
+    time_queue<int> tq(10, 1, tick_manager);
+
+    for (int i = 0; i < 10; ++i) {
+        tq.push(i, i + 1);
+    }
+
+    tick_manager->ticks = std::chrono::milliseconds(10);
+
+    // Even though all elements have expired, we haven't updated the queue, so it won't know it is empty
+    ASSERT_FALSE(tq.empty());
+
+    [[maybe_unused]] auto _ = tq.front();
 
     // Now we have updated the queue, we expect it to be empty.
     ASSERT_TRUE(tq.empty());
