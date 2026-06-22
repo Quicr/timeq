@@ -61,10 +61,7 @@ namespace timeq {
         virtual ~threaded_tick_service()
         {
             _stop = true;
-
-            if (_tick_thread.joinable()) {
-                _tick_thread.join();
-            }
+            _tick_thread.join();
         }
 
         threaded_tick_service& operator=(const threaded_tick_service& other)
