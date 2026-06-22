@@ -52,14 +52,10 @@ namespace timeq {
 
         struct queue_value_type
         {
-            queue_value_type(bucket_type& bucket,
-                             index_type value_index,
-                             tick_type expiry_tick,
-                             tick_type wait_for_tick)
+            queue_value_type(bucket_type& bucket, index_type value_index, tick_type expiry_tick)
               : bucket(std::addressof(bucket))
               , value_index(value_index)
               , expiry_tick(expiry_tick)
-              , wait_for_tick(wait_for_tick)
             {
             }
 
@@ -69,7 +65,6 @@ namespace timeq {
             bucket_type* bucket;
             index_type value_index;
             tick_type expiry_tick;
-            tick_type wait_for_tick;
         };
 
         using queue_type = std::vector<queue_value_type>;
@@ -160,30 +155,20 @@ namespace timeq {
          *
          * @param value         The value to push onto the queue.
          * @param ttl           Time to live for an object in milliseconds
-         * @param delay_ttl     pop wait Time to live for an object in milliseconds
-         *                      This will cause pop to be delayed by this TTL value
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
-        FORCE_INLINE void push(const T& value, std::size_t ttl, std::size_t delay_ttl = 0)
-        {
-            internal_push(value, ttl, delay_ttl);
-        }
+        FORCE_INLINE void push(const T& value, std::size_t ttl) { internal_push(value, ttl); }
 
         /**
          * @brief pushes a new value onto the queue with a time-to-live.
          *
          * @param value      The value to push onto the queue.
          * @param ttl        Time to live for an object in milliseconds
-         * @param delay_ttl  pop wait Time to live for an object in milliseconds
-         *                   This will cause pop to be delayed by this TTL value
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
-        FORCE_INLINE void push(T&& value, std::size_t ttl, std::size_t delay_ttl = 0)
-        {
-            internal_push(std::move(value), ttl, delay_ttl);
-        }
+        FORCE_INLINE void push(T&& value, std::size_t ttl) { internal_push(std::forward<T>(value), ttl); }
 
         /**
          * @brief Pop (increment) front
@@ -217,16 +202,12 @@ namespace timeq {
             std::uint32_t expired = 0;
 
             while (_queue_index < _queue.size()) {
-                auto& [bucket, value_index, expiry_tick, pop_wait_ttl] = _queue.at(_queue_index);
+                auto& [bucket, value_index, expiry_tick] = _queue.at(_queue_index);
 
                 if (ticks > expiry_tick || value_index >= bucket->size()) {
                     expired++;
                     _queue_index++;
                     continue;
-                }
-
-                if (pop_wait_ttl > ticks) {
-                    return { std::nullopt, expired };
                 }
 
                 return { bucket->at(value_index), expired };
@@ -313,13 +294,8 @@ namespace timeq {
 
             _bucket_index = get_future_bucket_index(delta / _interval);
 
-            if (_last_tick_queue_cleared > _duration && !_queue.empty()) {
-                if (_queue_index >= _queue.size()) {
-                    _queue.clear();
-                } else {
-                    _queue.erase(_queue.begin(), std::next(_queue.begin(), _queue_index));
-                }
-
+            if (_current_ticks - _last_tick_queue_cleared >= _duration && !_queue.empty()) {
+                _queue.erase(_queue.begin(), std::next(_queue.begin(), _queue_index));
                 _queue_index = 0;
                 _last_tick_queue_cleared = _current_ticks;
             }
@@ -340,7 +316,7 @@ namespace timeq {
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
-        FORCE_INLINE void internal_push(auto&& value, std::size_t ttl, std::size_t delay_ttl)
+        FORCE_INLINE void internal_push(auto&& value, std::size_t ttl)
         {
             if (ttl > _duration) {
                 throw std::invalid_argument("TTL is greater than max duration");
@@ -361,7 +337,7 @@ namespace timeq {
             bucket_type& bucket = _buckets[future_index];
 
             bucket.emplace_back(value);
-            _queue.emplace_back(bucket, bucket.size() - 1, expiry_tick, ticks + delay_ttl);
+            _queue.emplace_back(bucket, bucket.size() - 1, expiry_tick);
         }
 
       protected:

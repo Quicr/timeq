@@ -8,6 +8,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 CPMAddPackage("gh:google/googletest@1.17.0")
 
 add_executable(timeq_test
+    tick_service.cpp
     time_queue.cpp
 )
 
