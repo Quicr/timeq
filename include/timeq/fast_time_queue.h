@@ -288,7 +288,7 @@ namespace timeq {
                 return _current_ticks;
             }
 
-            if (_current_ticks - _last_tick_queue_cleared > _duration * 0.2 && !_queue.empty()) {
+            if (_current_ticks - _last_tick_queue_cleared > _duration && !_queue.empty()) {
                 compact_consumed_queue();
                 _last_tick_queue_cleared = _current_ticks;
             }

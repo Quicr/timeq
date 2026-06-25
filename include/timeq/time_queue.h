@@ -329,7 +329,7 @@ namespace timeq {
             _bucket_index = get_future_bucket_index(intervals_elapsed);
             _last_bucket_advance_tick += delta;
 
-            if (_current_ticks - _last_tick_queue_cleared > _duration * 0.2 && !_queue.empty()) {
+            if (_current_ticks - _last_tick_queue_cleared > _duration && !_queue.empty()) {
                 compact_consumed_queue();
                 _last_tick_queue_cleared = _current_ticks;
             }
