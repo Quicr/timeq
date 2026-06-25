@@ -3,6 +3,8 @@
 #include <timeq/fast_time_queue.h>
 #include <timeq/time_queue.h>
 
+#include <type_traits>
+
 static auto service = std::make_shared<timeq::threaded_tick_service>();
 
 constexpr size_t kIterations = 100'000'000;
@@ -13,7 +15,7 @@ Construct(benchmark::State& state)
 {
     const std::size_t duration = state.range(0);
     for (auto _ : state) {
-        auto tq = TimeQueue(duration, 1, service, kIterations);
+        auto tq = TimeQueue(duration, 1, service);
 
         std::size_t size = tq.size();
         benchmark::DoNotOptimize(size);
@@ -191,14 +193,25 @@ PushAndPop_Interval_125ms(benchmark::State& state)
     state.SetItemsProcessed(items_count);
 }
 
-#include "type.h"
+struct TrivialType
+{};
+
+static_assert(std::is_trivially_copyable_v<TrivialType>);
+
+struct NonTrivialType
+{
+    NonTrivialType() {}
+    ~NonTrivialType() {}
+};
+
+static_assert(!std::is_trivially_copyable_v<NonTrivialType>);
 
 using namespace timeq;
 
-BENCHMARK(Construct<time_queue<TrivialType>>)->Arg(300);
-BENCHMARK(Construct<time_queue<NonTrivialType>>)->Arg(300);
-BENCHMARK(Construct<fast_time_queue<TrivialType>>)->Arg(300);
-BENCHMARK(Construct<fast_time_queue<NonTrivialType>>)->Arg(300);
+BENCHMARK(Construct<time_queue<TrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(Construct<time_queue<NonTrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(Construct<fast_time_queue<TrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(Construct<fast_time_queue<NonTrivialType>>)->Arg(300)->Arg(1'000'000);
 
 BENCHMARK(Push<time_queue<TrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(Push<time_queue<NonTrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
