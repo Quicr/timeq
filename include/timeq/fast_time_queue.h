@@ -107,7 +107,7 @@ namespace timeq {
           , _interval{ interval }
           , _tick_service(std::move(tick_service))
         {
-            if (duration == 0 || duration % interval != 0 || duration == interval) {
+            if (duration == 0 || interval == 0 || duration % interval != 0 || duration == interval) {
                 throw std::invalid_argument("Invalid fast_time_queue constructor args");
             }
 

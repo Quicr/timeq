@@ -124,7 +124,7 @@ namespace timeq {
           , _interval{ interval }
           , _tick_service(std::move(tick_service))
         {
-            if (duration == 0 || duration % interval != 0 || duration == interval) {
+            if (duration == 0 || interval == 0 || duration % interval != 0 || duration == interval) {
                 throw std::invalid_argument("Invalid time_queue constructor args");
             }
 
@@ -313,14 +313,14 @@ namespace timeq {
                 return new_tick_count;
             }
 
-            const auto intervals_elapsed = delta / _interval;
+            const auto buckets_elapsed = delta / _interval;
 
-            if (intervals_elapsed >= bucket_count()) {
+            if (buckets_elapsed >= bucket_count()) {
                 clear();
                 return new_tick_count;
             }
 
-            for (std::size_t i = 0; i < intervals_elapsed; ++i) {
+            for (std::size_t i = 0; i < buckets_elapsed; ++i) {
                 const index_type future_index = get_future_bucket_index(i);
                 if (!_buckets.contains(future_index)) {
                     continue;
@@ -331,7 +331,7 @@ namespace timeq {
                 bucket.shrink_to_fit();
             }
 
-            _bucket_index = get_future_bucket_index(intervals_elapsed);
+            _bucket_index = get_future_bucket_index(buckets_elapsed);
             _last_bucket_advance_tick += delta;
 
             if (_current_ticks - _last_tick_queue_cleared > _duration && !_queue.empty()) {
