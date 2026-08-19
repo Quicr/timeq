@@ -370,7 +370,7 @@ namespace timeq {
 
             bucket_type& bucket = _buckets[future_index];
 
-            bucket.emplace_back(value);
+            bucket.emplace_back(std::forward<decltype(value)>(value));
             _queue.emplace_back(bucket, bucket.size() - 1, expiry_tick, ticks + delay_ttl);
         }
 

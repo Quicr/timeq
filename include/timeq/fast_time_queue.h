@@ -323,7 +323,7 @@ namespace timeq {
 
             const tick_type expiry_tick = ticks + ttl;
 
-            _queue.emplace_back(value, expiry_tick, ticks + delay_ttl);
+            _queue.emplace_back(std::forward<decltype(value)>(value), expiry_tick, ticks + delay_ttl);
         }
 
         FORCE_INLINE void compact_consumed_queue() noexcept
