@@ -5,6 +5,18 @@
 
 #include <type_traits>
 
+struct mock_tick_service : timeq::tick_service
+{
+    explicit mock_tick_service(std::chrono::milliseconds ticks)
+      : ticks(ticks)
+    {
+    }
+
+    std::chrono::microseconds get() const override { return ticks; }
+
+    std::chrono::microseconds ticks;
+};
+
 static auto service = std::make_shared<timeq::threaded_tick_service>();
 
 constexpr size_t kIterations = 100'000'000;
@@ -36,6 +48,23 @@ Push(benchmark::State& state)
     }
 
     state.SetItemsProcessed(items_count);
+}
+
+template<class TimeQueue>
+static void
+FirstPushAfterIdle(benchmark::State& state)
+{
+    const std::size_t duration = state.range(0);
+    auto aged_service = std::make_shared<mock_tick_service>(std::chrono::milliseconds(duration - 1));
+    TimeQueue tq(duration, 1, aged_service, 1);
+
+    for (auto _ : state) {
+        tq.push({}, duration);
+
+        std::size_t size = tq.size();
+        benchmark::DoNotOptimize(size);
+        benchmark::ClobberMemory();
+    }
 }
 
 template<class TimeQueue>
@@ -217,6 +246,11 @@ BENCHMARK(Push<time_queue<TrivialType>>)->Iterations(kIterations)->Arg(300)->Arg
 BENCHMARK(Push<time_queue<NonTrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(Push<fast_time_queue<TrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(Push<fast_time_queue<NonTrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
+
+BENCHMARK(FirstPushAfterIdle<time_queue<TrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(FirstPushAfterIdle<time_queue<NonTrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(FirstPushAfterIdle<fast_time_queue<TrivialType>>)->Arg(300)->Arg(1'000'000);
+BENCHMARK(FirstPushAfterIdle<fast_time_queue<NonTrivialType>>)->Arg(300)->Arg(1'000'000);
 
 BENCHMARK(Pop<time_queue<TrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
 BENCHMARK(Pop<time_queue<NonTrivialType>>)->Iterations(kIterations)->Arg(300)->Arg(1'000'000);
