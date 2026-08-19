@@ -321,7 +321,12 @@ namespace timeq {
             }
 
             for (std::size_t i = 0; i < intervals_elapsed; ++i) {
-                bucket_type& bucket = _buckets[get_future_bucket_index(i)];
+                const index_type future_index = get_future_bucket_index(i);
+                if (!_buckets.contains(future_index)) {
+                    continue;
+                }
+
+                bucket_type& bucket = _buckets.at(future_index);
                 bucket.clear();
                 bucket.shrink_to_fit();
             }
