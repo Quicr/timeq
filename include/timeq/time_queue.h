@@ -391,12 +391,7 @@ namespace timeq {
             }
 
             const std::size_t logical_size = _queue.size() - _queue_index;
-
-            if constexpr (std::is_trivially_copyable_v<queue_value_type>) {
-                std::memmove(_queue.data(), _queue.data() + _queue_index, logical_size * sizeof(queue_value_type));
-            } else {
-                std::move(_queue.begin() + static_cast<std::ptrdiff_t>(_queue_index), _queue.end(), _queue.begin());
-            }
+            std::memmove(_queue.data(), _queue.data() + _queue_index, logical_size * sizeof(queue_value_type));
 
             _queue.resize(logical_size);
             _queue_index = 0;
