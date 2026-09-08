@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-22.04 ]
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm, windows-latest ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -51,7 +51,7 @@ jobs:
         echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTING=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_BUILD_TYPE="${{env.BUILD_TYPE}}" -DBUILD_TESTING="ON"
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j
@@ -67,7 +67,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-22.04 ]
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm, windows-latest ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -84,13 +84,13 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           chmod -R +rx ${{github.workspace}}/build
-          ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+          ctest -C ${{env.BUILD_TYPE}} --output-on-failure -E "benchmark"
 
   benchmark:
     needs: build
     strategy:
       matrix:
-        os: [  macos-latest, ubuntu-22.04 ]
+        os: [  macos-latest, ubuntu-22.04, ubuntu-22.04-arm, windows-latest ]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -104,6 +104,7 @@ jobs:
           path: ${{github.workspace}}/build
 
       - name: Benchmark
+        working-directory: ${{github.workspace}}/build
         run: |
-          chmod +x ${{github.workspace}}/build/benchmark/timeq_benchmark
-          ${{github.workspace}}/build/benchmark/timeq_benchmark
+          chmod -R +rx ${{github.workspace}}/build
+          ctest -C ${{env.BUILD_TYPE}} -R "benchmark" --verbose
