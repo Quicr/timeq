@@ -104,6 +104,7 @@ jobs:
           path: ${{github.workspace}}/build
 
       - name: Benchmark
+        shell: bash
         run: |
           chmod +x ${{github.workspace}}/build/benchmark/timeq_benchmark
           ${{github.workspace}}/build/benchmark/timeq_benchmark
