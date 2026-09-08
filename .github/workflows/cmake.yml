@@ -104,7 +104,6 @@ jobs:
           path: ${{github.workspace}}/build
 
       - name: Benchmark
-        shell: bash
         run: |
           chmod -R +rx ${{github.workspace}}/build
           ctest -C ${{env.BUILD_TYPE}} -R "benchmark"
