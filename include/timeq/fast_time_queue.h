@@ -33,7 +33,11 @@
 #include <vector>
 
 namespace timeq {
-#define FORCE_INLINE __attribute__((always_inline))
+#ifdef _MSC_VER
+#define FORCE_INLINE inline __forceinline
+#else
+#define FORCE_INLINE inline __attribute__((always_inline))
+#endif
 
     /**
      * @brief Aging element FIFO queue.
