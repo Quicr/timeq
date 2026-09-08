@@ -14,7 +14,7 @@ intervals have elapsed since the last update.
 ## Requirements
 
 - CMake 3.13 or newer
-- A C++20 compiler (GCC, Clang, or Apple Clang)
+- A C++20 compiler
 
 When built as the top-level project, test and benchmark dependencies (GoogleTest and
 Google Benchmark) are fetched automatically via [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake).
