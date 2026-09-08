@@ -22,3 +22,5 @@ target_compile_options(timeq_benchmark PRIVATE
 )
 
 target_link_libraries(timeq_benchmark PRIVATE timeq benchmark::benchmark_main)
+
+add_test(NAME timeq_benchmark COMMAND timeq_benchmark)

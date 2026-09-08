@@ -84,7 +84,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           chmod -R +rx ${{github.workspace}}/build
-          ctest -C ${{env.BUILD_TYPE}} --output-on-failure
+          ctest -C ${{env.BUILD_TYPE}} --output-on-failure -E "benchmark"
 
   benchmark:
     needs: build
@@ -106,5 +106,5 @@ jobs:
       - name: Benchmark
         shell: bash
         run: |
-          chmod +x ${{github.workspace}}/build/benchmark/timeq_benchmark
-          ${{github.workspace}}/build/benchmark/timeq_benchmark
+          chmod -R +rx ${{github.workspace}}/build
+          ctest -C ${{env.BUILD_TYPE}} -R "benchmark"
