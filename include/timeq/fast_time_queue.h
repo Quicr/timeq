@@ -67,6 +67,8 @@ namespace timeq {
         template<typename U>
         struct element
         {
+            using type = U;
+
             /// Value of front object
             std::optional<U> value;
 
@@ -77,6 +79,8 @@ namespace timeq {
         template<typename U>
         struct element<U&>
         {
+            using type = U;
+
             /// Value of front object
             std::optional<std::reference_wrapper<U>> value;
 
@@ -171,7 +175,7 @@ namespace timeq {
          */
         FORCE_INLINE void push(T&& value, std::size_t ttl, std::size_t delay_ttl = 0)
         {
-            internal_push(std::move(value), ttl, delay_ttl);
+            internal_push(std::forward<T>(value), ttl, delay_ttl);
         }
 
         /**
@@ -266,7 +270,7 @@ namespace timeq {
             }
 
             _queue_index = 0;
-            _last_tick_queue_cleared = _current_ticks;
+            _last_tick_queue_cleared = _last_advance_tick = _current_ticks;
         }
 
       protected:
@@ -280,7 +284,7 @@ namespace timeq {
         {
             const tick_type new_tick_count =
               std::chrono::duration_cast<std::chrono::milliseconds>(_tick_service->get()).count();
-            const tick_type delta = new_tick_count - _current_ticks;
+            const tick_type delta = new_tick_count - _last_advance_tick;
             _current_ticks = new_tick_count;
 
             if (delta < _interval) {
@@ -291,6 +295,8 @@ namespace timeq {
                 clear();
                 return _current_ticks;
             }
+
+            _last_advance_tick = _current_ticks;
 
             if (_current_ticks - _last_tick_queue_cleared > _duration && !_queue.empty()) {
                 compact_consumed_queue();
@@ -341,7 +347,7 @@ namespace timeq {
                 return;
             }
 
-            const std::size_t logical_size = _queue.size() - _queue_index;
+            const std::size_t logical_size = this->size();
 
             if constexpr (std::is_trivially_copyable_v<queue_value_type>) {
                 std::memmove(_queue.data(), _queue.data() + _queue_index, logical_size * sizeof(queue_value_type));
@@ -368,6 +374,9 @@ namespace timeq {
 
         /// Last calculated tick value when queue was cleared.
         tick_type _last_tick_queue_cleared{ 0 };
+
+        /// Last tick when advance actually advanced.
+        tick_type _last_advance_tick{ 0 };
 
         /// The FIFO ordered queue of values as they were inserted.
         queue_type _queue;
