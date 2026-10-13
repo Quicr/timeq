@@ -2,6 +2,9 @@
 
 [![CMake](https://github.com/Quicr/timeq/actions/workflows/cmake.yml/badge.svg)](https://github.com/Quicr/timeq/actions/workflows/cmake.yml)
 
+[![REUSE status](https://api.reuse.software/badge/github.com/fsfe/reuse-action)](https://api.reuse.software/info/github.com/fsfe/reuse-action)
+[![REUSE Compliance](https://github.com/Quicr/timeq/actions/workflows/reuse.yaml/badge.svg?branch=main)](https://github.com/Quicr/timeq/actions/workflows/reuse.yaml)
+
 A time-based queue where the length of the queue is a duration, divided into buckets
 based on a given time interval. As time progresses, buckets in the past are cleared,
 and the main queue is updated so that the front only returns a valid object that has

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2023 Cisco Systems
+// SPDX-License-Identifier: BSD-2-Clause
+
 #include "time_queue_bench.hpp"
 
 #include <benchmark/benchmark.h>
