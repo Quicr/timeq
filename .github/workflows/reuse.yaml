@@ -25,12 +25,12 @@ jobs:
       - name: Generate REUSE SPDX SBOM
         uses: fsfe/reuse-action@v6
         with:
-          args: spdx --output quicr.spdx
+          args: spdx --output timeq.spdx
 
       - name: Upload REUSE SPDX SBOM
         uses: actions/upload-artifact@v7
         with:
-          name: quicr-spdx
-          path: quicr.spdx
+          name: timeq-spdx
+          path: timeq.spdx
           if-no-files-found: error
           retention-days: 14
