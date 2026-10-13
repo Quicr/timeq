@@ -10,6 +10,8 @@ operations. Buckets in the past can therefore be cleared in bulk based on how ma
 intervals have elapsed since the last update.
 
 `timeq` is a header-only C++20 library. The public API lives under `include/timeq/`.
+Use `time_queue` for bucket-managed payload storage, or `flat_time_queue` for
+contiguous inline storage optimized for small, cheaply movable payloads.
 
 ## Requirements
 
