@@ -1,35 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023 Cisco Systems
 // SPDX-License-Identifier: BSD-2-Clause
 
-/**
- *  fast_time_queue.h
- *
- *  Description:
- *      A time based queue, where the length of the queue is a duration,
- *      divided into buckets based on a given time interval. As time
- *      progresses, buckets in the past are cleared, and the main queue
- *      is updated so that the front only returns a valid object that
- *      has not expired. To improve performance, buckets are only cleared
- *      on push or pop operations. Thus, buckets in the past can be
- *      cleared in bulk based on how many we should have advanced since
- *      the last time we updated.
- *
- *  Portability Issues:
- *      None.
- */
-
 #pragma once
 
 #include "tick_service.h"
 
 #include <cstdint>
-#include <cstring>
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <stdexcept>
-#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace timeq {
@@ -40,7 +21,7 @@ namespace timeq {
 #endif
 
     /**
-     * @brief Aging element FIFO queue.
+     * @brief Aging element FIFO queue using contiguous inline storage.
      *
      * @details Time based queue that maintains the push/pop order, but expires
      *          older values given a specific ttl.
@@ -48,7 +29,7 @@ namespace timeq {
      * @tparam T The element type to be stored.
      */
     template<typename T>
-    class fast_time_queue
+    class flat_time_queue
     {
       protected:
         using tick_type = tick_service::tick_type;
@@ -97,7 +78,7 @@ namespace timeq {
         using reference = element<T&>;
 
         /**
-         * @brief Construct a fast_time_queue with defaults or supplied parameters
+         * @brief Construct a flat_time_queue with supplied parameters.
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Value must be > 0, < duration, duration % interval == 0.
@@ -107,7 +88,7 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or the tick_service is
          * null.
          */
-        fast_time_queue(std::size_t duration,
+        flat_time_queue(std::size_t duration,
                         std::size_t interval,
                         std::shared_ptr<tick_service> tick_service,
                         std::size_t initial_queue_size)
@@ -116,7 +97,7 @@ namespace timeq {
           , _tick_service(std::move(tick_service))
         {
             if (duration == 0 || interval == 0 || duration % interval != 0 || duration == interval) {
-                throw std::invalid_argument("Invalid fast_time_queue constructor args");
+                throw std::invalid_argument("Invalid flat_time_queue constructor args");
             }
 
             if (!_tick_service) {
@@ -127,7 +108,7 @@ namespace timeq {
         }
 
         /**
-         * @brief Construct a fast_time_queue with defaults or supplied parameters
+         * @brief Construct a flat_time_queue with supplied parameters.
          *
          * @param duration Duration of the queue in milliseconds. Value must be > 0, and != interval.
          * @param interval Interval of ticks in milliseconds. Must be > 0, < duration, duration % interval == 0.
@@ -136,25 +117,24 @@ namespace timeq {
          * @throws std::invalid_argument If the duration or interval do not meet requirements or If the tick_service is
          *         null.
          */
-        fast_time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
-          : fast_time_queue(duration, interval, std::move(tick_service), duration / interval)
+        flat_time_queue(std::size_t duration, std::size_t interval, std::shared_ptr<tick_service> tick_service)
+          : flat_time_queue(duration, interval, std::move(tick_service), duration / interval)
         {
         }
 
-        fast_time_queue() = delete;
-        fast_time_queue(const fast_time_queue&) = default;
-        fast_time_queue(fast_time_queue&&) noexcept = default;
+        flat_time_queue() = delete;
+        flat_time_queue(const flat_time_queue&) = default;
+        flat_time_queue(flat_time_queue&&) noexcept = default;
 
-        fast_time_queue& operator=(const fast_time_queue&) = default;
-        fast_time_queue& operator=(fast_time_queue&&) noexcept = default;
+        flat_time_queue& operator=(const flat_time_queue&) = default;
+        flat_time_queue& operator=(flat_time_queue&&) noexcept = default;
 
         /**
-         * @brief pushes a new value onto the queue with a time-to-live.
+         * @brief Pushes a new value onto the queue with a time-to-live.
          *
-         * @param value         The value to push onto the queue.
-         * @param ttl           Time to live for an object in milliseconds
-         * @param delay_ttl     pop wait Time to live for an object in milliseconds
-         *                      This will cause pop to be delayed by this TTL value
+         * @param value The value to push onto the queue.
+         * @param ttl Time to live for an object in milliseconds.
+         * @param delay_ttl Pop wait time to live for an object in milliseconds.
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
@@ -164,12 +144,11 @@ namespace timeq {
         }
 
         /**
-         * @brief pushes a new value onto the queue with a time-to-live.
+         * @brief Pushes a new value onto the queue with a time-to-live.
          *
-         * @param value      The value to push onto the queue.
-         * @param ttl        Time to live for an object in milliseconds
-         * @param delay_ttl  pop wait Time to live for an object in milliseconds
-         *                   This will cause pop to be delayed by this TTL value
+         * @param value The value to push onto the queue.
+         * @param ttl Time to live for an object in milliseconds.
+         * @param delay_ttl Pop wait time to live for an object in milliseconds.
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
@@ -179,7 +158,7 @@ namespace timeq {
         }
 
         /**
-         * @brief Pop (increment) front
+         * @brief Pop (increment) front.
          *
          * @details This method should be called after front when the object is
          * processed. This will move the queue forward. If at the end of the queue,
@@ -204,7 +183,7 @@ namespace timeq {
         /**
          * @brief Returns the most valid front of the queue without popping.
          *
-         * @returns Element of the front value
+         * @returns Element of the front value.
          */
         FORCE_INLINE reference front()
         {
@@ -240,7 +219,7 @@ namespace timeq {
         /**
          * @brief Pops (removes) the front of the queue.
          *
-         * @returns element of the popped value
+         * @returns Element of the popped value.
          */
         [[nodiscard]] FORCE_INLINE value_type pop_front()
         {
@@ -261,7 +240,7 @@ namespace timeq {
         FORCE_INLINE void update() { [[maybe_unused]] auto _ = advance(); }
 
         /**
-         * @brief Clear/reset the queue to no objects
+         * @brief Clear/reset the queue to no objects.
          */
         FORCE_INLINE void clear() noexcept
         {
@@ -275,10 +254,9 @@ namespace timeq {
 
       protected:
         /**
-         * @brief Based on current time, adjust and move the bucket index with time
-         *        (sliding window)
+         * @brief Based on current time, adjust and move the queue with time.
          *
-         * @returns Current tick value at time of advance
+         * @returns Current tick value at time of advance.
          */
         [[nodiscard]] FORCE_INLINE tick_type advance()
         {
@@ -307,15 +285,11 @@ namespace timeq {
         }
 
         /**
-         * @brief pushes new element onto the queue and adds it to future bucket.
+         * @brief Pushes a new element onto the queue.
          *
-         * @details Internal definition of push. pushes value into specified
-         *          bucket, and then emplaces the location info into the queue.
-         *
-         * @param value         The value to push onto the queue.
-         * @param ttl           Time to live for an object in milliseconds
-         * @param delay_ttl     pop wait Time to live for an object in milliseconds
-         *                      This will cause pop to be delayed by this TTL value
+         * @param value The value to push onto the queue.
+         * @param ttl Time to live for an object in milliseconds.
+         * @param delay_ttl Pop wait time to live for an object in milliseconds.
          *
          * @throws std::invalid_argument If ttl is greater than duration.
          */
@@ -348,12 +322,7 @@ namespace timeq {
             }
 
             const std::size_t logical_size = this->size();
-
-            if constexpr (std::is_trivially_copyable_v<queue_value_type>) {
-                std::memmove(_queue.data(), _queue.data() + _queue_index, logical_size * sizeof(queue_value_type));
-            } else {
-                std::move(_queue.begin() + static_cast<std::ptrdiff_t>(_queue_index), _queue.end(), _queue.begin());
-            }
+            std::move(_queue.begin() + static_cast<std::ptrdiff_t>(_queue_index), _queue.end(), _queue.begin());
 
             _queue.resize(logical_size);
             _queue_index = 0;
