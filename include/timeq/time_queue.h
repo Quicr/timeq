@@ -84,6 +84,8 @@ namespace timeq {
         template<typename U>
         struct element
         {
+            using type = U;
+
             /// Value of front object
             std::optional<U> value;
 
@@ -94,6 +96,8 @@ namespace timeq {
         template<typename U>
         struct element<U&>
         {
+            using type = std::reference_wrapper<U>;
+
             /// Value of front object
             std::optional<std::reference_wrapper<U>> value;
 
