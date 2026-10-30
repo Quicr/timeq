@@ -12,23 +12,28 @@ project(timeq
 
 include(GNUInstallDirs)
 
-configure_file(cmake/version.h.in ${PROJECT_BINARY_DIR}/include/timeq/version.h)
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.h.in"
+    "${PROJECT_BINARY_DIR}/include/timeq/version.h"
+    @ONLY
+)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #=============================================================================#
 # Options
 #=============================================================================#
 
-include(CMakeDependentOption)
-
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    set(timeq_STANDALONE ON)
+    set(timeq_IS_TOP_LEVEL ON)
 endif()
 
-cmake_dependent_option(TIMEQ_BUILD_TESTS "Build tests for timeq" ON timeq_STANDALONE OFF)
-cmake_dependent_option(TIMEQ_BUILD_BENCHMARKS "Build benchmarks for timeq" ON timeq_STANDALONE OFF)
-option(TIMEQ_INSTALL "Enable install rules for timeq" ${timeq_STANDALONE})
+option(TIMEQ_INSTALL "Enable install rules for timeq" ${timeq_IS_TOP_LEVEL})
+
+include(CMakeDependentOption)
+
+cmake_dependent_option(TIMEQ_BUILD_TESTS "Build tests for timeq" ON timeq_IS_TOP_LEVEL OFF)
+cmake_dependent_option(TIMEQ_BUILD_BENCHMARKS "Build benchmarks for timeq" ON timeq_IS_TOP_LEVEL OFF)
 
 #=============================================================================#
 # Build the library
