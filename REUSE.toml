@@ -10,6 +10,7 @@ path = [
   ".gitignore",
   "AUTHORS.md",
   "README.md",
+  "VERSION",
 ]
 SPDX-FileCopyrightText = "NONE"
 SPDX-License-Identifier = "BSD-2-Clause"

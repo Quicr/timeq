@@ -18,7 +18,7 @@ set_target_properties(timeq_test PROPERTIES
     CXX_EXTENSIONS ON
 )
 
-target_link_libraries(timeq_test PRIVATE timeq GTest::gtest_main)
+target_link_libraries(timeq_test PRIVATE timeq::timeq GTest::gtest_main)
 
 target_compile_options(timeq_test PRIVATE
     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wpedantic -Wextra -Wall>

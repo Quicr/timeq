@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Cisco Systems
+# SPDX-License-Identifier: BSD-2-Clause
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/timeqTargets.cmake")
+
+check_required_components("timeq")
